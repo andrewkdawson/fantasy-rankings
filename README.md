@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📊 Fantasy Power Rankings
 
-## Getting Started
+A web app for creating **custom fantasy team power rankings**.  
+Supports **Sleeper leagues** (via League ID) and **manual JSON input**.  
+Built with **Next.js + Tailwind** and deployed on **Vercel**.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Sleeper League Import**  
+  Enter a Sleeper League ID and automatically pull team names and logos.  
+  View rankings in:
+  - **Ranking Mode** → drag-and-drop sortable list with numbered positions.  
+  - **Tier List Mode** → drag-and-drop teams into customizable S/A/B/etc. tiers.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Manual JSON Import**  
+  Paste or upload a JSON file with teams.  
+  Useful for commissioner-exported data (e.g. from ESPN or other platforms).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Tier List Mode**  
+  - Default S/A/B/C/D/F tiers.  
+  - Add or remove tiers dynamically.  
+  - Drag-and-drop across tiers.  
+  - LocalStorage persistence.
 
-## Learn More
+- **Ranking Mode**  
+  - Straight sortable list of all teams.  
+  - Teams automatically numbered by rank.  
+  - LocalStorage persistence.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ⚠️ ESPN Integration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- ESPN requires **authentication cookies** (`espn_s2` and `SWID`) or private partner API access.  
+- Because of this, **direct ESPN sync is not working yet**.  
+- Planned workarounds:
+  - **Commissioner Export**: Commish runs a script once, saves league data as `espn_league.json`, then uploads it via JSON Mode.  
+  - Future cookie-based sync for private league use.  
 
-## Deploy on Vercel
+👉 For now, use **Sleeper** or **Manual JSON Mode**.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Tech Stack
+
+- [Next.js 15 (App Router)](https://nextjs.org/)  
+- [Tailwind CSS](https://tailwindcss.com/)  
+- [@hello-pangea/dnd](https://github.com/hello-pangea/dnd) (drag and drop)  
+- [Vercel](https://vercel.com/) for hosting  
