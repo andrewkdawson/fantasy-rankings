@@ -2,33 +2,37 @@ import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const accessKey = searchParams.get("key");
+  const leagueId = searchParams.get("leagueId");
+  const seasonId =
+    searchParams.get("seasonId") || new Date().getFullYear().toString();
 
-  // Require secret key
-  if (accessKey !== process.env.MY_LEAGUE_KEY) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  if (!leagueId) {
+    return NextResponse.json({ error: "Missing leagueId" }, { status: 400 });
   }
 
-  const seasonId = new Date().getFullYear().toString();
-  const leagueId = process.env.ESPN_LEAGUE_ID;
-
   try {
-    const res = await fetch(
-      `https://fantasy.espn.com/apis/v3/games/ffl/seasons/${seasonId}/segments/0/leagues/${leagueId}`,
-      {
-        headers: {
-          Cookie: `espn_s2=${process.env.ESPN_S2}; SWID=${process.env.ESPN_SWID};`,
-        },
-      }
-    );
+    const url = `https://fantasy.espn.com/apis/v3/games/ffl/seasons/${seasonId}/segments/0/leagues/${leagueId}`;
+    const res = await fetch(url);
 
     if (!res.ok) {
-      throw new Error("Failed to fetch ESPN API");
+      return NextResponse.json({ error: "Failed to fetch league data" }, { status: res.status });
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+
+    const teams = (data.teams || []).map((t: any) => ({
+      id: t.id,
+      name: `${t.location ?? ""} ${t.nickname ?? ""}`.trim(),
+      logo: t.logo || "https://via.placeholder.com/40",
+    }));
+
+    if (!teams.length) {
+      return NextResponse.json({ error: "No teams found (maybe private league?)" });
+    }
+
+    return NextResponse.json({ teams });
   } catch (err: any) {
+    console.error("ESPN API Error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

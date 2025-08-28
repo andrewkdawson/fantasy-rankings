@@ -29,7 +29,7 @@ export default function TeamList({ teams, setTeams }: Props) {
       <Droppable droppableId="teams">
         {(provided) => (
           <ul
-            className="w-full max-w-xl bg-white rounded shadow p-4"
+            className="w-full max-w-xl bg-gray-800 border border-gray-700 rounded-lg shadow p-4"
             {...provided.droppableProps}
             ref={provided.innerRef}
           >
@@ -37,23 +37,23 @@ export default function TeamList({ teams, setTeams }: Props) {
               <Draggable key={team.id} draggableId={String(team.id)} index={index}>
                 {(provided) => (
                   <li
-                    className="flex items-center gap-4 p-3 mb-2 border-b rounded-lg hover:bg-gray-50 transition"
+                    className="flex items-center gap-4 p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition"
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                   >
                     {/* Rank number */}
-                    <span className="w-6 text-gray-700 font-bold">{index + 1}</span>
+                    <span className="w-6 text-gray-400 font-bold">{index + 1}</span>
 
                     {/* Team logo */}
                     <img
                       src={team.logo || "https://via.placeholder.com/40"}
                       alt={team.name}
-                      className="w-10 h-10 rounded-full border"
+                      className="w-10 h-10 rounded-full border border-gray-500"
                     />
 
                     {/* Team name */}
-                    <span className="font-semibold text-lg text-gray-900">
+                    <span className="font-semibold text-lg text-white">
                       {team.name}
                     </span>
                   </li>

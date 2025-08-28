@@ -49,16 +49,27 @@ export default function Home() {
     }
 
     try {
-      const res = await fetch(`https://api.sleeper.app/v1/league/${leagueId}/users`);
-      const data = await res.json();
+      const [usersRes, rostersRes] = await Promise.all([
+        fetch(`https://api.sleeper.app/v1/league/${leagueId}/users`),
+        fetch(`https://api.sleeper.app/v1/league/${leagueId}/rosters`),
+      ]);
 
-      const sleeperTeams = data.map((user: any, idx: number) => ({
-        id: idx + 1,
-        name: user.display_name || `Team ${idx + 1}`,
-        logo: user.avatar
-          ? `https://sleepercdn.com/avatars/${user.avatar}`
-          : "https://via.placeholder.com/40",
-      }));
+      const users = await usersRes.json();
+      const rosters = await rostersRes.json();
+
+      const sleeperTeams = rosters.map((roster: any, idx: number) => {
+        const owner = users.find((u: any) => u.user_id === roster.owner_id);
+
+        return {
+          id: roster.roster_id,
+          name: roster.metadata?.team_name || owner?.display_name || `Team ${idx + 1}`,
+          logo: roster.metadata?.team_logo
+            ? roster.metadata.team_logo
+            : owner?.avatar
+            ? `https://sleepercdn.com/avatars/${owner.avatar}`
+            : "https://via.placeholder.com/40",
+        };
+      });
 
       setTeams(sleeperTeams);
     } catch (err) {
@@ -67,10 +78,15 @@ export default function Home() {
     }
   };
 
-  // ESPN fetch (private league only)
+  // ESPN fetch (from Members page)
   const handleLoadESPN = async () => {
+    if (!leagueId) {
+      alert("Please enter an ESPN League ID");
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/espn?key=${process.env.NEXT_PUBLIC_LEAGUE_KEY}`);
+      const res = await fetch(`/api/espn?leagueId=${leagueId}`);
       const data = await res.json();
 
       if (data.error) {
@@ -80,8 +96,8 @@ export default function Home() {
 
       const espnTeams = data.teams.map((t: any) => ({
         id: t.id,
-        name: `${t.location} ${t.nickname}`,
-        logo: t.logo || "https://via.placeholder.com/40",
+        name: t.name,
+        logo: t.logo,
       }));
 
       setTeams(espnTeams);
@@ -92,8 +108,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-10 bg-gradient-to-b from-gray-100 to-gray-200">
-      <h1 className="text-5xl font-extrabold mb-8 text-gray-800 drop-shadow">
+    <div className="min-h-screen flex flex-col items-center p-10 bg-gray-900 text-gray-100">
+      <h1 className="text-5xl font-extrabold mb-8 text-white drop-shadow">
         Fantasy Power Rankings
       </h1>
 
@@ -101,10 +117,10 @@ export default function Home() {
       <select
         value={platform}
         onChange={(e) => setPlatform(e.target.value as "sleeper" | "espn" | "json")}
-        className="border rounded-lg p-2 mb-6"
+        className="border border-gray-700 bg-gray-800 text-white rounded-lg p-2 mb-6 shadow focus:ring-2 focus:ring-blue-500"
       >
         <option value="sleeper">Sleeper</option>
-        <option value="espn">ESPN (My League Only)</option>
+        <option value="espn">ESPN (Not currently supported)</option>
         <option value="json">Manual JSON</option>
       </select>
 
@@ -116,7 +132,7 @@ export default function Home() {
             placeholder="Enter Sleeper League ID"
             value={leagueId}
             onChange={(e) => setLeagueId(e.target.value)}
-            className="border rounded-lg p-3 w-full max-w-xl mb-4 shadow focus:ring-2 focus:ring-green-400"
+            className="border border-gray-700 bg-gray-800 text-white rounded-lg p-3 w-full max-w-xl mb-4 focus:ring-2 focus:ring-green-500"
           />
           <button
             onClick={handleLoadSleeper}
@@ -129,19 +145,28 @@ export default function Home() {
 
       {/* ESPN Mode */}
       {platform === "espn" && (
-        <button
-          onClick={handleLoadESPN}
-          className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow transition mb-6"
-        >
-          Load My ESPN League
-        </button>
+        <>
+          <input
+            type="text"
+            placeholder="Enter ESPN League ID"
+            value={leagueId}
+            onChange={(e) => setLeagueId(e.target.value)}
+            className="border border-gray-700 bg-gray-800 text-white rounded-lg p-3 w-full max-w-xl mb-4 focus:ring-2 focus:ring-red-500"
+          />
+          <button
+            onClick={handleLoadESPN}
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow transition mb-6"
+          >
+            Load ESPN League
+          </button>
+        </>
       )}
 
       {/* JSON Mode */}
       {platform === "json" && (
         <>
           <textarea
-            className="border rounded-lg p-3 w-full max-w-xl h-40 mb-2 shadow focus:ring-2 focus:ring-blue-400 text-black bg-white placeholder-gray-500"
+            className="border border-gray-700 bg-gray-800 text-white rounded-lg p-3 w-full max-w-xl h-40 mb-2 shadow focus:ring-2 focus:ring-blue-500"
             placeholder='Paste league JSON (format: [{"id":1,"name":"Team A","logo":"url"}])'
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
@@ -161,15 +186,15 @@ export default function Home() {
           <div className="flex gap-4 mb-6">
             <button
               onClick={() => setMode("ranking")}
-              className={`px-4 py-2 rounded-lg font-semibold shadow 
-                ${mode === "ranking" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+              className={`px-4 py-2 rounded-lg font-semibold shadow transition 
+                ${mode === "ranking" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
             >
               Ranking Mode
             </button>
             <button
               onClick={() => setMode("tier")}
-              className={`px-4 py-2 rounded-lg font-semibold shadow 
-                ${mode === "tier" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+              className={`px-4 py-2 rounded-lg font-semibold shadow transition 
+                ${mode === "tier" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
             >
               Tier List Mode
             </button>

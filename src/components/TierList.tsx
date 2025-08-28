@@ -25,7 +25,7 @@ type Props = {
   setTeams: (teams: Team[]) => void;
 };
 
-// Default TierMaker-style tiers (without Unassigned)
+// Default S–F tiers
 const defaultTiers: Tier[] = [
   { id: "tier-1", label: "S", color: "bg-red-600" },
   { id: "tier-2", label: "A", color: "bg-orange-500" },
@@ -35,11 +35,11 @@ const defaultTiers: Tier[] = [
   { id: "tier-6", label: "F", color: "bg-gray-600" },
 ];
 
-// Special Unassigned tier
+// Always-present Unassigned bucket
 const unassignedTier: Tier = {
   id: "unassigned",
   label: "Unassigned",
-  color: "bg-gray-400",
+  color: "bg-gray-500",
 };
 
 export default function TierList({ teams }: Props) {
@@ -49,7 +49,7 @@ export default function TierList({ teams }: Props) {
     unassignedTier,
   ]);
 
-  // Load from localStorage
+  // Load saved state
   useEffect(() => {
     const savedTiers = localStorage.getItem("tieredTeams");
     const savedNames = localStorage.getItem("tierNames");
@@ -66,20 +66,19 @@ export default function TierList({ teams }: Props) {
     if (savedNames) setTierNames(JSON.parse(savedNames));
   }, []);
 
-  // Save whenever things change
+  // Save to localStorage
   useEffect(() => {
     localStorage.setItem("tieredTeams", JSON.stringify(tiers));
     localStorage.setItem("tierNames", JSON.stringify(tierNames));
   }, [tiers, tierNames]);
 
-  // Put new teams into Unassigned if not placed yet
+  // Drop new teams into Unassigned if not placed
   useEffect(() => {
     if (!teams.length) return;
     setTiers((prev) => {
       const copy = { ...prev };
       const allPlacedIds = Object.values(copy).flat().map((t) => t.id);
 
-      // Ensure Unassigned exists
       if (!copy[unassignedTier.id]) {
         copy[unassignedTier.id] = [];
       }
@@ -93,21 +92,21 @@ export default function TierList({ teams }: Props) {
     });
   }, [teams]);
 
-  // Handle drag & drop
+  // Handle drag/drop
   const handleOnDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
     const { source, destination } = result;
 
+    // Reorder inside tier
     if (source.droppableId === destination.droppableId) {
-      // Reorder inside same tier
-      const reordered = Array.from(tiers[source.droppableId]);
+      const reordered = Array.from(tiers[source.droppableId] || []);
       const [moved] = reordered.splice(source.index, 1);
       reordered.splice(destination.index, 0, moved);
 
       setTiers({ ...tiers, [source.droppableId]: reordered });
     } else {
-      // Move across tiers safely
+      // Move across tiers
       const sourceItems = Array.from(tiers[source.droppableId] || []);
       const destItems = Array.from(tiers[destination.droppableId] || []);
 
@@ -122,15 +121,15 @@ export default function TierList({ teams }: Props) {
     }
   };
 
-  // Handle renaming a tier
+  // Rename tier
   const handleRename = (id: string, newLabel: string) => {
-    if (id === unassignedTier.id) return; // Unassigned cannot be renamed
+    if (id === unassignedTier.id) return;
     setTierNames((prev) =>
       prev.map((tier) => (tier.id === id ? { ...tier, label: newLabel } : tier))
     );
   };
 
-  // Add a new tier
+  // Add tier
   const addTier = () => {
     const newId = `tier-${tierNames.length + 1}`;
     const newTier = {
@@ -139,7 +138,6 @@ export default function TierList({ teams }: Props) {
       color: "bg-purple-500",
     };
 
-    // Always insert before Unassigned
     setTierNames((prev) => [
       ...prev.filter((t) => t.id !== unassignedTier.id),
       newTier,
@@ -148,12 +146,11 @@ export default function TierList({ teams }: Props) {
     setTiers({ ...tiers, [newId]: [] });
   };
 
-  // Delete a tier → move its teams into Unassigned
+  // Delete tier → send its teams to Unassigned
   const deleteTier = (id: string) => {
-    if (id === unassignedTier.id) return; // Can't delete Unassigned
+    if (id === unassignedTier.id) return;
 
     setTierNames((prev) => prev.filter((tier) => tier.id !== id));
-
     setTiers((prev) => {
       const copy = { ...prev };
       const movedTeams = copy[id] || [];
@@ -184,7 +181,7 @@ export default function TierList({ teams }: Props) {
                 {/* Normal tiers */}
                 {tier.id !== unassignedTier.id ? (
                   <>
-                    {/* Tier Label */}
+                    {/* Tier label */}
                     <div
                       className={`${tier.color} text-white font-bold text-lg flex items-center justify-center w-32 h-24`}
                     >
@@ -196,8 +193,8 @@ export default function TierList({ teams }: Props) {
                       />
                     </div>
 
-                    {/* Normal droppable row */}
-                    <div className="flex flex-wrap gap-2 flex-1 bg-white min-h-[96px] p-3 relative">
+                    {/* Drop zone */}
+                    <div className="flex flex-wrap gap-2 flex-1 bg-gray-800 border border-gray-700 min-h-[96px] p-3 relative">
                       {tiers[tier.id]?.map((team, index) => (
                         <Draggable
                           key={team.id}
@@ -206,7 +203,7 @@ export default function TierList({ teams }: Props) {
                         >
                           {(provided) => (
                             <div
-                              className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg shadow cursor-pointer hover:bg-gray-200 transition"
+                              className="flex items-center gap-2 px-3 py-2 bg-gray-700 rounded-lg shadow hover:bg-gray-600 transition"
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
@@ -214,9 +211,9 @@ export default function TierList({ teams }: Props) {
                               <img
                                 src={team.logo || "https://via.placeholder.com/40"}
                                 alt={team.name}
-                                className="w-10 h-10 rounded-full border"
+                                className="w-10 h-10 rounded-full border border-gray-600"
                               />
-                              <span className="font-semibold text-gray-900">
+                              <span className="font-semibold text-gray-100">
                                 {team.name}
                               </span>
                             </div>
@@ -225,17 +222,17 @@ export default function TierList({ teams }: Props) {
                       ))}
                       {provided.placeholder}
 
-                      {/* Delete Tier Button */}
+                      {/* Delete tier button */}
                       <button
                         onClick={() => deleteTier(tier.id)}
-                        className="absolute top-2 right-2 text-sm px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                        className="absolute top-2 right-2 text-sm px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
                       >
                         ✕
                       </button>
                     </div>
                   </>
                 ) : (
-                  // Special Unassigned row (transparent, no label)
+                  // Unassigned bucket (floating, no label)
                   <div className="flex flex-wrap gap-2 w-full min-h-[96px] p-3 bg-transparent">
                     {tiers[tier.id]?.map((team, index) => (
                       <Draggable
@@ -245,7 +242,7 @@ export default function TierList({ teams }: Props) {
                       >
                         {(provided) => (
                           <div
-                            className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg shadow cursor-pointer hover:bg-gray-200 transition"
+                            className="flex items-center gap-2 px-3 py-2 bg-gray-700 rounded-lg shadow hover:bg-gray-600 transition"
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
@@ -253,9 +250,9 @@ export default function TierList({ teams }: Props) {
                             <img
                               src={team.logo || "https://via.placeholder.com/40"}
                               alt={team.name}
-                              className="w-10 h-10 rounded-full border"
+                              className="w-10 h-10 rounded-full border border-gray-600"
                             />
-                            <span className="font-semibold text-gray-900">
+                            <span className="font-semibold text-gray-100">
                               {team.name}
                             </span>
                           </div>
@@ -271,10 +268,10 @@ export default function TierList({ teams }: Props) {
         ))}
       </DragDropContext>
 
-      {/* Add Tier Button */}
+      {/* Add tier button */}
       <button
         onClick={addTier}
-        className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition"
+        className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow transition"
       >
         + Add Tier
       </button>
